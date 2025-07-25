@@ -5,12 +5,15 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  dockerHubUser: $(docker-username)
-  dockerHubPass: $(docker-password)
+  - group: SonorSecrets
+  - name: dockerHubUser
+    value: $(docker-username)
+  - name: dockerHubPass
+    value: $(docker-password)
 
 stages:
 
-# 🧼 Stage 1 - SonarCloud Quality Gate
+# 🔍 SonarCloud Analysis
 - stage: SonarAnalysis
   displayName: "🔍 SonarCloud Analysis"
   jobs:
@@ -25,11 +28,11 @@ stages:
             organization: 'firaszouaoui'
             scannerMode: 'CLI'
             configMode: 'manual'
-            cliProjectKey: 'todo-app'
-            cliProjectName: 'todo-app'
+            cliProjectKey: 'firaszouaoui_todo-app'
+            cliProjectName: 'Todo App'
             extraProperties: |
-              sonar.sources=.
-              sonar.exclusions=**/node_modules/**,**/*.test.js
+              sonar.sources=backend,frontend
+              sonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js
               sonar.sourceEncoding=UTF-8
 
         - task: SonarCloudAnalyze@1
@@ -38,19 +41,19 @@ stages:
           inputs:
             pollingTimeoutSec: '300'
 
-# 🛡️ Stage 2 - Trivy Security Scan
+# 🔐 Trivy Security Scan
 - stage: SecurityScan
   displayName: "🔐 Trivy Image Scan"
   dependsOn: SonarAnalysis
   jobs:
     - job: TrivyScan
-      displayName: "Scan Backend and Frontend Images with Trivy"
+      displayName: "Scan Docker Images"
       steps:
         - checkout: self
 
         - script: |
             sudo apt-get update
-            sudo apt-get install -y wget rpm
+            sudo apt-get install -y wget
             wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.deb
             sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
           displayName: "📦 Install Trivy"
@@ -58,7 +61,7 @@ stages:
         - script: |
             docker build -t backend-img ./backend
             docker build -t frontend-img ./frontend
-          displayName: "🐳 Build Images for Scan"
+          displayName: "🐳 Build Docker Images"
 
         - script: |
             trivy image backend-img > trivy-backend-report.txt
@@ -75,7 +78,7 @@ stages:
             pathToPublish: 'trivy-frontend-report.txt'
             artifactName: 'Trivy_Frontend_Report'
 
-# 📤 Stage 3 - Build & Push Images
+# 🚀 Build & Push Docker Images
 - stage: DockerBuildAndPush
   displayName: "🚀 Build & Push Docker Images"
   dependsOn: SecurityScan
@@ -89,9 +92,9 @@ stages:
           inputs:
             dockerVersion: 'latest'
 
-        - task: DockerLogin@2
-          inputs:
-            containerRegistry: 'docker-hub-service'
+        - script: |
+            echo $(dockerHubPass) | docker login -u $(dockerHubUser) --password-stdin
+          displayName: "🔐 Docker Login"
 
         - script: |
             docker build -t $(dockerHubUser)/todo-app-backend:latest ./backend
