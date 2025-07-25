@@ -13,33 +13,29 @@ variables:
 
 stages:
 
-# 🔍 SonarCloud Analysis
+# 🔍 SonarCloud Analysis (via CLI)
 - stage: SonarAnalysis
   displayName: "🔍 SonarCloud Analysis"
   jobs:
     - job: RunSonar
-      displayName: "Analyze with SonarCloud"
+      displayName: "Analyze with SonarScanner CLI"
       steps:
         - checkout: self
 
-        - task: SonarCloudPrepare@1
-          inputs:
-            SonarCloud: 'SonarCloud'
-            organization: 'firaszouaoui'
-            scannerMode: 'CLI'
-            configMode: 'manual'
-            cliProjectKey: 'firaszouaoui_todo-app'
-            cliProjectName: 'Todo App'
-            extraProperties: |
-              sonar.sources=backend,frontend
-              sonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js
-              sonar.sourceEncoding=UTF-8
-
-        - task: SonarCloudAnalyze@1
-
-        - task: SonarCloudPublish@1
-          inputs:
-            pollingTimeoutSec: '300'
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y unzip openjdk-11-jre
+            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+            unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+            export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
+            sonar-scanner \
+              -Dsonar.projectKey=firaszouaoui_todo-app \
+              -Dsonar.organization=firaszouaoui \
+              -Dsonar.sources=backend,frontend \
+              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.login=$SONAR_TOKEN
+          displayName: "🔍 Run SonarScanner CLI"
 
 # 🔐 Trivy Security Scan
 - stage: SecurityScan
