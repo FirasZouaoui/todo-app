@@ -13,12 +13,14 @@ variables:
 
 stages:
 
-# 🔍 SonarCloud Analysis (via CLI)
-- stage: SonarAnalysis
-  displayName: "🔍 SonarCloud Analysis"
+# ================================
+# 🔧 Stage 1: Continuous Integration (CI)
+# ================================
+- stage: CI
+  displayName: "🔧 CI - Install, Test, Build"
   jobs:
-    - job: RunSonar
-      displayName: "Analyze with SonarScanner CLI"
+    - job: BuildAndTest
+      displayName: "Install, Test, and Build Frontend & Backend"
       steps:
         - checkout: self
 
@@ -30,11 +32,23 @@ stages:
           displayName: "📦 Frontend - Install, Test, Build"
 
         - script: |
-            cd ../backend
+            cd backend
             npm install
             npm test
             npm run build
           displayName: "📦 Backend - Install, Test, Build"
+
+# ================================
+# 🔍 Stage 2: SonarCloud Analysis
+# ================================
+- stage: SonarAnalysis
+  displayName: "🔍 SonarCloud Analysis"
+  dependsOn: CI
+  jobs:
+    - job: RunSonar
+      displayName: "Analyze with SonarScanner CLI"
+      steps:
+        - checkout: self
 
         - script: |
             sudo apt-get update
@@ -51,7 +65,9 @@ stages:
               -Dsonar.login=$SONAR_TOKEN
           displayName: "🔍 Run SonarScanner CLI"
 
-# 🔐 Trivy Security Scan
+# ================================
+# 🔐 Stage 3: Trivy Security Scan
+# ================================
 - stage: SecurityScan
   displayName: "🔐 Trivy Image Scan"
   dependsOn: SonarAnalysis
@@ -84,7 +100,9 @@ stages:
             pathToPublish: 'trivy-reports'
             artifactName: 'Trivy_Reports'
 
-# 🚀 Build & Push Docker Images
+# ================================
+# 🚀 Stage 4: Docker Build & Push
+# ================================
 - stage: DockerBuildAndPush
   displayName: "🚀 Build & Push Docker Images"
   dependsOn: SecurityScan
