@@ -23,6 +23,20 @@ stages:
         - checkout: self
 
         - script: |
+            cd frontend
+            npm install
+            npm test
+            npm run build
+          displayName: "📦 Frontend - Install, Test, Build"
+
+        - script: |
+            cd ../backend
+            npm install
+            npm test
+            npm run build
+          displayName: "📦 Backend - Install, Test, Build"
+
+        - script: |
             sudo apt-get update
             sudo apt-get install -y unzip openjdk-11-jre
             wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
@@ -60,19 +74,15 @@ stages:
           displayName: "🐳 Build Docker Images"
 
         - script: |
-            trivy image backend-img > trivy-backend-report.txt
-            trivy image frontend-img > trivy-frontend-report.txt
+            mkdir -p trivy-reports
+            trivy image backend-img > trivy-reports/backend-report.txt
+            trivy image frontend-img > trivy-reports/frontend-report.txt
           displayName: "🧪 Scan Docker Images"
 
         - task: PublishBuildArtifacts@1
           inputs:
-            pathToPublish: 'trivy-backend-report.txt'
-            artifactName: 'Trivy_Backend_Report'
-
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathToPublish: 'trivy-frontend-report.txt'
-            artifactName: 'Trivy_Frontend_Report'
+            pathToPublish: 'trivy-reports'
+            artifactName: 'Trivy_Reports'
 
 # 🚀 Build & Push Docker Images
 - stage: DockerBuildAndPush
