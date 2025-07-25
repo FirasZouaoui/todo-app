@@ -7,34 +7,33 @@ import userRouter from "./routes/userRoute.js"
 import taskRouter from "./routes/taskRoute.js"
 import forgotPasswordRouter from "./routes/forgotPassword.js"
 
-//app config
+// Load environment variables
 dotenv.config()
+
+// App config
 const app = express()
-const port = process.env.PORT || 8001
+const PORT = process.env.PORT || 8000
 mongoose.set('strictQuery', true);
 
-//middlewares
+// Middlewares
 app.use(express.json())
 app.use(cors())
 
-//db config
+// DB config
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
+  useNewUrlParser: true,
 }, (err) => {
-    if (err) {
-        console.log(err)
-    } else {
-        console.log("DB Connected")
-    }
+  if (err) {
+    console.log("MongoDB connection error:", err)
+  } else {
+    console.log("✅ MongoDB connected")
+  }
 })
 
-//api endpoints
+// Routes
 app.use("/api/user", userRouter)
 app.use("/api/task", taskRouter)
 app.use("/api/forgotPassword", forgotPasswordRouter)
 
-//listen
-//app.listen(port, () => console.log(`Listening on localhost:${port}`))
-
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`))
