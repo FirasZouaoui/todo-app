@@ -1,0 +1,104 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerHubUser: $(docker-username)
+  dockerHubPass: $(docker-password)
+
+stages:
+
+# 🧼 Stage 1 - SonarCloud Quality Gate
+- stage: SonarAnalysis
+  displayName: "🔍 SonarCloud Analysis"
+  jobs:
+    - job: RunSonar
+      displayName: "Analyze with SonarCloud"
+      steps:
+        - checkout: self
+
+        - task: SonarCloudPrepare@1
+          inputs:
+            SonarCloud: 'SonarCloud'
+            organization: 'firaszouaoui'
+            scannerMode: 'CLI'
+            configMode: 'manual'
+            cliProjectKey: 'todo-app'
+            cliProjectName: 'todo-app'
+            extraProperties: |
+              sonar.sources=.
+              sonar.exclusions=**/node_modules/**,**/*.test.js
+              sonar.sourceEncoding=UTF-8
+
+        - task: SonarCloudAnalyze@1
+
+        - task: SonarCloudPublish@1
+          inputs:
+            pollingTimeoutSec: '300'
+
+# 🛡️ Stage 2 - Trivy Security Scan
+- stage: SecurityScan
+  displayName: "🔐 Trivy Image Scan"
+  dependsOn: SonarAnalysis
+  jobs:
+    - job: TrivyScan
+      displayName: "Scan Backend and Frontend Images with Trivy"
+      steps:
+        - checkout: self
+
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y wget rpm
+            wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.deb
+            sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
+          displayName: "📦 Install Trivy"
+
+        - script: |
+            docker build -t backend-img ./backend
+            docker build -t frontend-img ./frontend
+          displayName: "🐳 Build Images for Scan"
+
+        - script: |
+            trivy image backend-img > trivy-backend-report.txt
+            trivy image frontend-img > trivy-frontend-report.txt
+          displayName: "🧪 Scan Docker Images"
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: 'trivy-backend-report.txt'
+            artifactName: 'Trivy_Backend_Report'
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: 'trivy-frontend-report.txt'
+            artifactName: 'Trivy_Frontend_Report'
+
+# 📤 Stage 3 - Build & Push Images
+- stage: DockerBuildAndPush
+  displayName: "🚀 Build & Push Docker Images"
+  dependsOn: SecurityScan
+  jobs:
+    - job: PushImages
+      displayName: "Push Docker Images to DockerHub"
+      steps:
+        - checkout: self
+
+        - task: DockerInstaller@0
+          inputs:
+            dockerVersion: 'latest'
+
+        - task: DockerLogin@2
+          inputs:
+            containerRegistry: 'docker-hub-service'
+
+        - script: |
+            docker build -t $(dockerHubUser)/todo-app-backend:latest ./backend
+            docker build -t $(dockerHubUser)/todo-app-frontend:latest ./frontend
+          displayName: "🔨 Build Docker Images"
+
+        - script: |
+            docker push $(dockerHubUser)/todo-app-backend:latest
+            docker push $(dockerHubUser)/todo-app-frontend:latest
+          displayName: "📦 Push Docker Images"
