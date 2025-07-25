@@ -5,20 +5,29 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "npx npm-force-resolutions"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^5.1.0",
+    "bcryptjs": "3.0.2",
     "body-parser": "^1.20.1",
+    "brace-expansion": "2.0.2",
     "cors": "^2.8.5",
-    "crypto": "^1.0.1",
+    "cross-spawn": "7.0.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^6.9.0",
     "nodemailer": "^6.9.1",
     "validator": "^13.7.0"
+  },
+  "resolutions": {
+    "brace-expansion": "2.0.2",
+    "cross-spawn": "7.0.5"
+  },
+  "devDependencies": {
+    "npm-force-resolutions": "^0.0.10"
   }
 }

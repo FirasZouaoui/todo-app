@@ -34,4 +34,7 @@ app.use("/api/task", taskRouter)
 app.use("/api/forgotPassword", forgotPasswordRouter)
 
 //listen
-app.listen(port, () => console.log(`Listening on localhost:${port}`))
+//app.listen(port, () => console.log(`Listening on localhost:${port}`))
+
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
