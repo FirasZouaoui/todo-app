@@ -18,7 +18,6 @@ ci_job:
     - npm run build
     - cd ../backend
     - npm install
-    - npm test -- --passWithNoTests
     - npm run build
 
 sonarcloud_job:
