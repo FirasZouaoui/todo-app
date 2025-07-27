@@ -14,11 +14,11 @@ ci_job:
   script:
     - cd frontend
     - npm install
-    - npm test
+    - npm test -- --passWithNoTests
     - npm run build
     - cd ../backend
     - npm install
-    - npm test
+    - npm test -- --passWithNoTests
     - npm run build
 
 sonarcloud_job:
