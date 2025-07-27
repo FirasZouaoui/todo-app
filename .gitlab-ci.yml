@@ -1,0 +1,72 @@
+stages:
+  - ci
+  - sonarcloud
+  - trivy_scan
+  - docker_push
+
+variables:
+  dockerHubUser: "${docker-username}"
+  dockerHubPass: "${docker-password}"
+
+ci_job:
+  stage: ci
+  image: node:18
+  script:
+    - cd frontend
+    - npm install
+    - npm test
+    - npm run build
+    - cd ../backend
+    - npm install
+    - npm test
+    - npm run build
+
+sonarcloud_job:
+  stage: sonarcloud
+  image: maven:3.6.3-jdk-11
+  script:
+    - apt-get update && apt-get install -y unzip wget
+    - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+    - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+    - export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
+    - sonar-scanner
+      -Dsonar.projectKey=firaszouaoui_todo-app
+      -Dsonar.organization=firaszouaoui
+      -Dsonar.sources=backend,frontend
+      -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js
+      -Dsonar.host.url=https://sonarcloud.io
+      -Dsonar.login=$SONAR_TOKEN
+  only:
+    - main
+
+trivy_scan_job:
+  stage: trivy_scan
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - apk add --no-cache wget
+    - wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.tar.gz
+    - tar zxvf trivy_0.49.1_Linux-64bit.tar.gz
+    - mv trivy /usr/local/bin/
+    - docker build -t backend-img ./backend
+    - docker build -t frontend-img ./frontend
+    - mkdir -p trivy-reports
+    - trivy image backend-img > trivy-reports/backend-report.txt
+    - trivy image frontend-img > trivy-reports/frontend-report.txt
+    - echo "Trivy scan completed"
+  artifacts:
+    paths:
+      - trivy-reports/
+
+docker_push_job:
+  stage: docker_push
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - echo "$dockerHubPass" | docker login -u "$dockerHubUser" --password-stdin
+    - docker build -t $dockerHubUser/todo-app-backend:latest ./backend
+    - docker build -t $dockerHubUser/todo-app-frontend:latest ./frontend
+    - docker push $dockerHubUser/todo-app-backend:latest
+    - docker push $dockerHubUser/todo-app-frontend:latest
