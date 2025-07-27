@@ -29,13 +29,14 @@ sonarcloud_job:
     - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
     - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
     - export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
-    - sonar-scanner
-      -Dsonar.projectKey=firaszouaoui_todo-app
-      -Dsonar.organization=firaszouaoui
-      -Dsonar.sources=backend,frontend
-      -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js
-      -Dsonar.host.url=https://sonarcloud.io
-      -Dsonar.login=$SONAR_TOKEN
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=firaszouaoui_todo-app \
+        -Dsonar.organization=firaszouaoui \
+        -Dsonar.sources=backend,frontend \
+        -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js \
+        -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.login=$SONAR_TOKEN
   only:
     - main
 
