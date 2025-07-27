@@ -5,8 +5,8 @@ stages:
   - docker_push
 
 variables:
-  dockerHubUser: "${docker-username}"
-  dockerHubPass: "${docker-password}"
+  DOCKER_USERNAME: "${DOCKER_USERNAME}"
+  DOCKER_PASSWORD: "${DOCKER_PASSWORD}"
 
 ci_job:
   stage: ci
@@ -65,8 +65,8 @@ docker_push_job:
   services:
     - docker:dind
   script:
-    - echo "$dockerHubPass" | docker login -u "$dockerHubUser" --password-stdin
-    - docker build -t $dockerHubUser/todo-app-backend:latest ./backend
-    - docker build -t $dockerHubUser/todo-app-frontend:latest ./frontend
-    - docker push $dockerHubUser/todo-app-backend:latest
-    - docker push $dockerHubUser/todo-app-frontend:latest
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker build -t $DOCKER_USERNAME/todo-app-backend:latest ./backend
+    - docker build -t $DOCKER_USERNAME/todo-app-frontend:latest ./frontend
+    - docker push $DOCKER_USERNAME/todo-app-backend:latest
+    - docker push $DOCKER_USERNAME/todo-app-frontend:latest
