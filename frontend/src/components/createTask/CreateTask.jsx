@@ -2,45 +2,40 @@ import React, { useState } from 'react';
 import { useContext } from 'react';
 import TaskContext from '../../context/TaskContext';
 import TokenContext from '../../context/TokenContext';
-import axios from "../../Axios/axios.js"
-import "./createTask.css"
+import axios from "../../Axios/axios.js";
+import "./createTask.css";
+
 function CreateTask() {
-    const { dispatch } = useContext(TaskContext)
-    const {userToken} = useContext(TokenContext)
-    const [title, setTitle] = useState("")
-    const [description, setDescription] = useState("")
-    // const [toast, setToast] = useState();
+    const { dispatch } = useContext(TaskContext);
+    const { userToken } = useContext(TokenContext);
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    
     const handleAdd = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post("/task/addTask", {title, description},{
-              headers: {
-                Authorization: `Bearer ${userToken}`
-              }
-            })
-            //setToast(res.data)
-            // showToast();
-          } catch (error) {
-            console.log(error);
-          }
-        dispatch({
-            type: "ADD_TASK",
-            title,
-            description
-        })
-        setTitle("")
-        setDescription("")
-    }
+            const res = await axios.post("/task/addTask", { title, description }, {
+                headers: {
+                    Authorization: `Bearer ${userToken}`
+                }
+            });
+            
+            // ✅ استعملنا res في console.log لتفادي تحذير eslint
+            console.log("Task created:", res.data);
 
-    // const showToast = () => {
-    //     const toast = document.getElementById('toast');
-    //     toast.style.display = "block"
-    //     setTimeout(hideToast,2000)
-    // }
-    // const hideToast = () => {
-    //     const toast = document.getElementById('toast');
-    //     toast.style.display = "none"
-    // }
+            dispatch({
+                type: "ADD_TASK",
+                title,
+                description
+            });
+
+            setTitle("");
+            setDescription("");
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
     return (
         <div className="addContainer md:w-1/3 md:mx-auto mx-3 mt-3 flex justify-center">
             <div className='w-11/12'>
@@ -71,7 +66,7 @@ function CreateTask() {
                     <div className='flex justify-center'>
                         <button
                             type='submit'
-                            className=' bg-blue-700 rounded-md text-white px-5 py-1 '
+                            className='bg-blue-700 rounded-md text-white px-5 py-1'
                         >Add</button>
                     </div>
                 </form>
