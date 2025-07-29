@@ -44,7 +44,7 @@ trivy_scan_job:
     - docker:dind
   script:
     - apk add --no-cache wget
-    - wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.tar.gz
+    - wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz
     - tar zxvf trivy_0.49.1_Linux-64bit.tar.gz
     - mv trivy /usr/local/bin/
     - docker build -t backend-img ./backend
