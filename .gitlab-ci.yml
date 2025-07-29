@@ -24,7 +24,9 @@ sonarcloud_job:
   stage: sonarcloud
   image: maven:3.6.3-jdk-11
   script:
-    - apt-get update && apt-get install -y unzip wget
+    - apt-get update && apt-get install -y curl unzip wget
+    - echo "🔍 Checking internet access..."
+    - curl -I https://sonarcloud.io
     - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
     - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
     - export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
