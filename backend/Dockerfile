@@ -1,19 +1,13 @@
-FROM node:18
-
+# Étape 1 : build React
+FROM node:18 AS builder
 WORKDIR /app
-
-
 COPY package.json package-lock.json ./
-
-
-RUN npm install --global npm-force-resolutions
-
-
-RUN npx npm-force-resolutions && npm install
-
-
+RUN npm install
 COPY . .
+RUN npm run build
 
-EXPOSE 8000
-
-CMD ["node", "server.js"]
+# Étape 2 : servir avec NGINX
+FROM nginx:alpine
+COPY --from=builder /app/build /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
