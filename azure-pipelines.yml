@@ -6,14 +6,12 @@ variables:
 
 stages:
 
-### 1. CI Stage
 - stage: ci
   jobs:
     - job: ci_job
-      displayName: "CI - Build & Test"
+      displayName: "Build & Test"
       pool:
         name: Default
-      container: node:18
       steps:
         - script: |
             cd frontend
@@ -25,7 +23,6 @@ stages:
             npm run build
           displayName: "Build Frontend and Backend"
 
-### 2. SonarCloud Stage
 - stage: sonarcloud
   condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
   jobs:
@@ -33,36 +30,29 @@ stages:
       displayName: "SonarCloud Analysis"
       pool:
         name: Default
-      container: sonarsource/sonar-scanner-cli:latest
       steps:
         - script: |
-            sonar-scanner \
-              -Dsonar.projectKey=devsecops3313631_todo-app \
-              -Dsonar.organization=devsecops3313631 \
-              -Dsonar.sources=backend,frontend \
-              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js \
-              -Dsonar.sourceEncoding=UTF-8 \
-              -Dsonar.host.url=$(SONAR_HOST_URL) \
+            sonar-scanner ^
+              -Dsonar.projectKey=devsecops3313631_todo-app ^
+              -Dsonar.organization=devsecops3313631 ^
+              -Dsonar.sources=backend,frontend ^
+              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js ^
+              -Dsonar.sourceEncoding=UTF-8 ^
+              -Dsonar.host.url=$(SONAR_HOST_URL) ^
               -Dsonar.login=$(SONAR_TOKEN)
           displayName: "Run Sonar Scanner"
 
-### 3. Trivy Scan Stage
 - stage: trivy_scan
   jobs:
     - job: trivy_scan_job
-      displayName: "Security Scan with Trivy"
+      displayName: "Security Scan"
       pool:
         name: Default
-      container: docker:latest
       steps:
         - script: |
-            apk add --no-cache wget tar
-            wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz
-            tar zxvf trivy_0.64.1_Linux-64bit.tar.gz
-            mv trivy /usr/local/bin/
             docker build -t backend-img ./backend
             docker build -t frontend-img ./frontend
-            mkdir -p trivy-reports
+            mkdir trivy-reports
             trivy image backend-img > trivy-reports/backend-report.txt
             trivy image frontend-img > trivy-reports/frontend-report.txt
           displayName: "Run Trivy Scan"
@@ -71,19 +61,15 @@ stages:
             pathToPublish: trivy-reports
             artifactName: trivy-reports
 
-### 4. Docker Push Stage
 - stage: docker_push
   jobs:
     - job: docker_push_job
-      displayName: "Docker Build & Push"
+      displayName: "Docker Push"
       pool:
         name: Default
-      container: docker:latest
       steps:
         - script: |
-            echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
-            docker build -t $(DOCKER_USERNAME)/todo-app-backend:latest ./backend
-            docker build -t $(DOCKER_USERNAME)/todo-app-frontend:latest ./frontend
+            echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_USERNAME) --password-stdin
             docker push $(DOCKER_USERNAME)/todo-app-backend:latest
             docker push $(DOCKER_USERNAME)/todo-app-frontend:latest
-          displayName: "Build and Push Images"
+          displayName: "Push to DockerHub"
