@@ -7,6 +7,6 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8080            # Ce que les autres services appellent
+      targetPort: 8000      # Ce que ton container écoute réellement
   type: ClusterIP

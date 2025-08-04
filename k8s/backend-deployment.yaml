@@ -17,7 +17,13 @@ spec:
         - name: backend
           image: firas124/todo-app-backend:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           env:
             - name: MONGO_URI
               value: mongodb://mongo:27017/todo
+            - name: JWT_SECRET
+              value: thisisasecretkey
+            - name: GMAIL_USERNAME
+              value: firaszwawi5@gmail.com
+            - name: GMAIL_PASSWORD
+              value: hwmo swyi tnfk uace
