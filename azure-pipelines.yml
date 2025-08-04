@@ -13,6 +13,7 @@ stages:
       displayName: "CI - Build & Test"
       pool:
         name: Default
+      container: node:18
       steps:
         - script: |
             cd frontend
@@ -32,18 +33,18 @@ stages:
       displayName: "SonarCloud Analysis"
       pool:
         name: Default
+      container: sonarsource/sonar-scanner-cli:latest
       steps:
         - script: |
-            sonar-scanner `
-              -Dsonar.projectKey=devsecops3313631_todo-app `
-              -Dsonar.organization=devsecops3313631 `
-              -Dsonar.sources=backend,frontend `
-              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js `
-              -Dsonar.sourceEncoding=UTF-8 `
-              -Dsonar.host.url=$(SONAR_HOST_URL) `
+            sonar-scanner \
+              -Dsonar.projectKey=devsecops3313631_todo-app \
+              -Dsonar.organization=devsecops3313631 \
+              -Dsonar.sources=backend,frontend \
+              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js \
+              -Dsonar.sourceEncoding=UTF-8 \
+              -Dsonar.host.url=$(SONAR_HOST_URL) \
               -Dsonar.login=$(SONAR_TOKEN)
           displayName: "Run Sonar Scanner"
-          shell: bash
 
 ### 3. Trivy Scan Stage
 - stage: trivy_scan
@@ -52,16 +53,18 @@ stages:
       displayName: "Security Scan with Trivy"
       pool:
         name: Default
+      container: docker:latest
       steps:
         - script: |
-            wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Windows-64bit.zip -OutFile trivy.zip
-            Expand-Archive trivy.zip -DestinationPath trivy-bin
-            $env:PATH += ";$PWD\trivy-bin"
+            apk add --no-cache wget tar
+            wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz
+            tar zxvf trivy_0.64.1_Linux-64bit.tar.gz
+            mv trivy /usr/local/bin/
             docker build -t backend-img ./backend
             docker build -t frontend-img ./frontend
-            mkdir trivy-reports
-            ./trivy-bin/trivy.exe image backend-img > trivy-reports/backend-report.txt
-            ./trivy-bin/trivy.exe image frontend-img > trivy-reports/frontend-report.txt
+            mkdir -p trivy-reports
+            trivy image backend-img > trivy-reports/backend-report.txt
+            trivy image frontend-img > trivy-reports/frontend-report.txt
           displayName: "Run Trivy Scan"
         - task: PublishBuildArtifacts@1
           inputs:
@@ -75,9 +78,10 @@ stages:
       displayName: "Docker Build & Push"
       pool:
         name: Default
+      container: docker:latest
       steps:
         - script: |
-            echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_USERNAME) --password-stdin
+            echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
             docker build -t $(DOCKER_USERNAME)/todo-app-backend:latest ./backend
             docker build -t $(DOCKER_USERNAME)/todo-app-frontend:latest ./frontend
             docker push $(DOCKER_USERNAME)/todo-app-backend:latest
