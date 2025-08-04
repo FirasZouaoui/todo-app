@@ -1,131 +1,89 @@
 trigger:
-  - main
-
-pool:
-  vmImage: 'ubuntu-latest'
+- main
 
 variables:
-  - group: SonorSecrets
-  - name: dockerHubUser
-    value: $(docker-username)
-  - name: dockerHubPass
-    value: $(docker-password)
+- group: todo-app-env
 
 stages:
 
-# ================================
-# 🔧 Stage 1: Continuous Integration (CI)
-# ================================
-- stage: CI
-  displayName: "🔧 CI - Install, Test, Build"
+### 1. CI Stage
+- stage: ci
   jobs:
-    - job: BuildAndTest
-      displayName: "Install, Test, and Build Frontend & Backend"
+    - job: ci_job
+      displayName: "CI - Build & Test"
+      pool:
+        name: Default
+      container: node:18
       steps:
-        - checkout: self
-
         - script: |
             cd frontend
             npm install
-            npm test
+            npm test -- --passWithNoTests
             npm run build
-          displayName: "📦 Frontend - Install, Test, Build"
-
-        - script: |
-            cd backend
+            cd ../backend
             npm install
-            npm test
             npm run build
-          displayName: "📦 Backend - Install, Test, Build"
+          displayName: "Build Frontend and Backend"
 
-# ================================
-# 🔍 Stage 2: SonarCloud Analysis
-# ================================
-- stage: SonarAnalysis
-  displayName: "🔍 SonarCloud Analysis"
-  dependsOn: CI
+### 2. SonarCloud Stage
+- stage: sonarcloud
+  condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
   jobs:
-    - job: RunSonar
-      displayName: "Analyze with SonarScanner CLI"
+    - job: sonarcloud_job
+      displayName: "SonarCloud Analysis"
+      pool:
+        name: Default
+      container: sonarsource/sonar-scanner-cli:latest
       steps:
-        - checkout: self
-
         - script: |
-            sudo apt-get update
-            sudo apt-get install -y unzip openjdk-11-jre
-            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-            unzip sonar-scanner-cli-5.0.1.3006-linux.zip
-            export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
             sonar-scanner \
-              -Dsonar.projectKey=firaszouaoui_todo-app \
-              -Dsonar.organization=firaszouaoui \
+              -Dsonar.projectKey=devsecops3313631_todo-app \
+              -Dsonar.organization=devsecops3313631 \
               -Dsonar.sources=backend,frontend \
               -Dsonar.exclusions=**/node_modules/**,**/build/**,**/coverage/**,**/*.test.js \
-              -Dsonar.host.url=https://sonarcloud.io \
-              -Dsonar.login=$SONAR_TOKEN
-          displayName: "🔍 Run SonarScanner CLI"
+              -Dsonar.sourceEncoding=UTF-8 \
+              -Dsonar.host.url=$(SONAR_HOST_URL) \
+              -Dsonar.login=$(SONAR_TOKEN)
+          displayName: "Run Sonar Scanner"
 
-# ================================
-# 🔐 Stage 3: Trivy Security Scan
-# ================================
-- stage: SecurityScan
-  displayName: "🔐 Trivy Image Scan"
-  dependsOn: SonarAnalysis
+### 3. Trivy Scan Stage
+- stage: trivy_scan
   jobs:
-    - job: TrivyScan
-      displayName: "Scan Docker Images"
+    - job: trivy_scan_job
+      displayName: "Security Scan with Trivy"
+      pool:
+        name: Default
+      container: docker
       steps:
-        - checkout: self
-
         - script: |
-            sudo apt-get update
-            sudo apt-get install -y wget
-            wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_Linux-64bit.deb
-            sudo dpkg -i trivy_0.49.1_Linux-64bit.deb
-          displayName: "📦 Install Trivy"
-
-        - script: |
+            apk add --no-cache wget
+            wget https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz
+            tar zxvf trivy_0.64.1_Linux-64bit.tar.gz
+            mv trivy /usr/local/bin/
             docker build -t backend-img ./backend
             docker build -t frontend-img ./frontend
-          displayName: "🐳 Build Docker Images"
-
-        - script: |
             mkdir -p trivy-reports
             trivy image backend-img > trivy-reports/backend-report.txt
             trivy image frontend-img > trivy-reports/frontend-report.txt
-          displayName: "🧪 Scan Docker Images"
-
+          displayName: "Trivy Scan"
         - task: PublishBuildArtifacts@1
           inputs:
-            pathToPublish: 'trivy-reports'
-            artifactName: 'Trivy_Reports'
+            pathToPublish: trivy-reports
+            artifactName: trivy-reports
 
-# ================================
-# 🚀 Stage 4: Docker Build & Push
-# ================================
-- stage: DockerBuildAndPush
-  displayName: "🚀 Build & Push Docker Images"
-  dependsOn: SecurityScan
+### 4. Docker Push Stage
+- stage: docker_push
   jobs:
-    - job: PushImages
-      displayName: "Push Docker Images to DockerHub"
+    - job: docker_push_job
+      displayName: "Docker Build & Push"
+      pool:
+        name: Default
+      container: docker
       steps:
-        - checkout: self
-
-        - task: DockerInstaller@0
-          inputs:
-            dockerVersion: 'latest'
-
         - script: |
-            echo $(dockerHubPass) | docker login -u $(dockerHubUser) --password-stdin
-          displayName: "🔐 Docker Login"
-
-        - script: |
-            docker build -t $(dockerHubUser)/todo-app-backend:latest ./backend
-            docker build -t $(dockerHubUser)/todo-app-frontend:latest ./frontend
-          displayName: "🔨 Build Docker Images"
-
-        - script: |
-            docker push $(dockerHubUser)/todo-app-backend:latest
-            docker push $(dockerHubUser)/todo-app-frontend:latest
-          displayName: "📦 Push Docker Images"
+            echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
+            docker build -t $(DOCKER_USERNAME)/todo-app-backend:latest ./backend
+            docker build -t $(DOCKER_USERNAME)/todo-app-frontend:latest ./frontend
+            docker push $(DOCKER_USERNAME)/todo-app-backend:latest
+            docker push $(DOCKER_USERNAME)/todo-app-frontend:latest
+          displayName: "Build and Push Images"
