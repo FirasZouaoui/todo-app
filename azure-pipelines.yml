@@ -24,6 +24,7 @@ stages:
             npm install
             npm run build
           displayName: "Build Frontend and Backend"
+          shell: bash   
 
 ### 2. SonarCloud Stage
 - stage: sonarcloud
@@ -45,6 +46,7 @@ stages:
               -Dsonar.host.url=$(SONAR_HOST_URL) \
               -Dsonar.login=$(SONAR_TOKEN)
           displayName: "Run Sonar Scanner"
+          shell: bash   
 
 ### 3. Trivy Scan Stage
 - stage: trivy_scan
@@ -66,6 +68,7 @@ stages:
             trivy image backend-img > trivy-reports/backend-report.txt
             trivy image frontend-img > trivy-reports/frontend-report.txt
           displayName: "Trivy Scan"
+          shell: bash   
         - task: PublishBuildArtifacts@1
           inputs:
             pathToPublish: trivy-reports
@@ -87,3 +90,4 @@ stages:
             docker push $(DOCKER_USERNAME)/todo-app-backend:latest
             docker push $(DOCKER_USERNAME)/todo-app-frontend:latest
           displayName: "Build and Push Images"
+          shell: bash   
