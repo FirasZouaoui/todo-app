@@ -60,9 +60,11 @@ const registerUser = async (req,res) => {
         const token = createToken(user._id)
         res.status(200).json({user,token})
 
-    } catch(error){
-        res.status(500).json({message: error.message})
-    }
+   } catch(error){
+    console.error("REGISTER ERROR: ", error); // أضف هذا
+    res.status(500).json({message: error.message})
+}
+
 }
 
 //get user info

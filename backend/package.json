@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "preinstall": "npx npm-force-resolutions",
     "build": "echo 'No build step for backend'"
   },
@@ -26,9 +26,13 @@
   },
   "resolutions": {
     "brace-expansion": "2.0.2",
-    "cross-spawn": "7.0.5"
+    "cross-spawn": "7.0.5",
+    "ansi-regex": "5.0.1"
   },
   "devDependencies": {
-    "npm-force-resolutions": "^0.0.10"
+    "jest": "^30.0.5",
+    "mongodb-memory-server": "^10.2.0",
+    "npm-force-resolutions": "^0.0.10",
+    "supertest": "^7.1.4"
   }
 }

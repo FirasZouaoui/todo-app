@@ -4,23 +4,26 @@ metadata:
   name: todo-ingress
   namespace: todo-app
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
 spec:
+  ingressClassName: nginx
   rules:
-  - host: todo.local
+  - host: 132.220.165.165.nip.io
     http:
       paths:
-        - path: /api
-          pathType: Prefix
-          backend:
-            service:
-              name: backend
-              port:
-                number: 8080
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: frontend
-              port:
-                number: 80
+      - path: /api      # يمرّرها كما هي
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 8080
+      - path: /         # كل ما تبقّى يذهب للـ frontend
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80

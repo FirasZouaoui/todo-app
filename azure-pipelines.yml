@@ -6,28 +6,64 @@ variables:
 
 stages:
 
-- stage: ci
+# === Test Frontend ===
+- stage: test_frontend
+  displayName: "Test Frontend"
   jobs:
-    - job: ci_job
-      displayName: "Build & Test"
+    - job: test_frontend_job
+      displayName: "Run Frontend Unit Tests"
       pool:
         name: Default
       steps:
         - script: |
             cd frontend
             npm install
-            npm test -- --passWithNoTests
+            npm test -- --watchAll=false
+          displayName: "Install & Test Frontend"
+
+# === Test Backend ===
+- stage: test_backend
+  displayName: "Test Backend"
+  dependsOn: test_frontend
+  jobs:
+    - job: test_backend_job
+      displayName: "Run Backend Unit Tests"
+      pool:
+        name: Default
+      steps:
+        - script: |
+            cd backend
+            npm install
+            npm test
+          displayName: "Install & Test Backend"
+
+# === Build ===
+- stage: build
+  displayName: "Build Frontend & Backend"
+  dependsOn:
+    - test_frontend
+    - test_backend
+  jobs:
+    - job: build_job
+      displayName: "Build Both Apps"
+      pool:
+        name: Default
+      steps:
+        - script: |
+            cd frontend
             npm run build
             cd ../backend
-            npm install
             npm run build
           displayName: "Build Frontend and Backend"
 
+# === SonarCloud ===
 - stage: sonarcloud
+  displayName: "SonarCloud Analysis"
+  dependsOn: build
   condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/pull/'))
   jobs:
     - job: sonarcloud_job
-      displayName: "SonarCloud Analysis"
+      displayName: "Run Sonar Scanner"
       pool:
         name: Default
       steps:
@@ -42,10 +78,13 @@ stages:
               -Dsonar.login=$(SONAR_TOKEN)
           displayName: "Run Sonar Scanner"
 
+# === Trivy Scan ===
 - stage: trivy_scan
+  displayName: "Security Scan"
+  dependsOn: build
   jobs:
     - job: trivy_scan_job
-      displayName: "Security Scan"
+      displayName: "Run Trivy Scan"
       pool:
         name: Default
       steps:
@@ -55,16 +94,21 @@ stages:
             mkdir trivy-reports
             trivy image backend-img > trivy-reports/backend-report.txt
             trivy image frontend-img > trivy-reports/frontend-report.txt
-          displayName: "Run Trivy Scan"
+          displayName: "Scan with Trivy"
         - task: PublishBuildArtifacts@1
           inputs:
             pathToPublish: trivy-reports
             artifactName: trivy-reports
 
+# === Docker Push ===
 - stage: docker_push
+  displayName: "Push Docker Images"
+  dependsOn:
+    - trivy_scan
+    - sonarcloud
   jobs:
     - job: docker_push_job
-      displayName: "Docker Push"
+      displayName: "Push to DockerHub"
       pool:
         name: Default
       steps:
@@ -75,4 +119,3 @@ stages:
             docker push $(DOCKER_USERNAME)/todo-app-backend:latest
             docker push $(DOCKER_USERNAME)/todo-app-frontend:latest
           displayName: "Build and Push Images"
-

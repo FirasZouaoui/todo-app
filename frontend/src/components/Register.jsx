@@ -1,7 +1,8 @@
 import React from 'react';
 import { useState, useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-import axios from "../Axios/axios.js"
+const axios = require("../Axios/axios.js");
+
 import TokenContext from '../context/TokenContext.js';
 function Register() {
     const [formData, setFormData] = useState({})
