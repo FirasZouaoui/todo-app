@@ -6,25 +6,12 @@ variables:
 
 stages:
 
-# === Test Frontend ===
-- stage: test_frontend
-  displayName: "Test Frontend"
-  jobs:
-    - job: test_frontend_job
-      displayName: "Run Frontend Unit Tests"
-      pool:
-        name: Default
-      steps:
-        - script: |
-            cd frontend
-            npm install
-            npm test -- --watchAll=false
-          displayName: "Install & Test Frontend"
+
 
 # === Test Backend ===
 - stage: test_backend
   displayName: "Test Backend"
-  dependsOn: test_frontend
+  
   jobs:
     - job: test_backend_job
       displayName: "Run Backend Unit Tests"
@@ -36,6 +23,23 @@ stages:
             npm install
             npm test
           displayName: "Install & Test Backend"
+
+
+          # === Test Frontend ===
+- stage: test_frontend
+  displayName: "Test Frontend"
+  dependsOn: test_backend
+  jobs:
+    - job: test_frontend_job
+      displayName: "Run Frontend Unit Tests"
+      pool:
+        name: Default
+      steps:
+        - script: |
+            cd frontend
+            npm install
+            npm test -- --watchAll=false
+          displayName: "Install & Test Frontend"
 
 
 # === Build ===
