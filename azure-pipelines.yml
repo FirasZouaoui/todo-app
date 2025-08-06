@@ -62,7 +62,7 @@ stages:
 
         - script: |
             cd backend
-            npm ci
+            npm install
             npm run build
           displayName: "Install & Build Backend"
 
