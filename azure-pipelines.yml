@@ -37,6 +37,7 @@ stages:
             npm test
           displayName: "Install & Test Backend"
 
+
 # === Build ===
 - stage: build
   displayName: "Build Frontend & Backend"
@@ -51,10 +52,16 @@ stages:
       steps:
         - script: |
             cd frontend
+            npm ci
+            CI=true npm run build
+          displayName: "Install & Build Frontend"
+
+        - script: |
+            cd backend
+            npm ci
             npm run build
-            cd ../backend
-            npm run build
-          displayName: "Build Frontend and Backend"
+          displayName: "Install & Build Backend"
+
 
 # === SonarCloud ===
 - stage: sonarcloud
