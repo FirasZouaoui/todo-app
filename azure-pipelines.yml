@@ -6,12 +6,9 @@ variables:
 
 stages:
 
-
-
 # === Test Backend ===
 - stage: test_backend
   displayName: "Test Backend"
-  
   jobs:
     - job: test_backend_job
       displayName: "Run Backend Unit Tests"
@@ -24,8 +21,7 @@ stages:
             npm test
           displayName: "Install & Test Backend"
 
-
-          # === Test Frontend ===
+# === Test Frontend ===
 - stage: test_frontend
   displayName: "Test Frontend"
   dependsOn: test_backend
@@ -40,7 +36,6 @@ stages:
             npm install
             npm test -- --watchAll=false
           displayName: "Install & Test Frontend"
-
 
 # === Build ===
 - stage: build
@@ -65,7 +60,6 @@ stages:
             npm install
             npm run build
           displayName: "Install & Build Backend"
-
 
 # === SonarCloud ===
 - stage: sonarcloud
@@ -130,3 +124,35 @@ stages:
             docker push $(DOCKER_USERNAME)/todo-app-backend:latest
             docker push $(DOCKER_USERNAME)/todo-app-frontend:latest
           displayName: "Build and Push Images"
+
+# === Update K8s YAMLs and Push to GitHub ===
+- stage: update_k8s_manifests
+  displayName: "Update image tags and push to GitHub"
+  dependsOn: docker_push
+  condition: succeeded()
+  jobs:
+    - job: update_k8s_yaml_job
+      displayName: "Update YAMLs on Windows Agent"
+      pool:
+        name: Default
+      steps:
+        - powershell: |
+            $version = "v$(Build.BuildId)"
+            Write-Host "📝 Updating YAMLs to tag $version"
+
+            # استبدال التاج داخل backend YAML
+            (Get-Content "k8s\backend-deployment.yaml") -replace "firas124/todo-app-backend:.*", "firas124/todo-app-backend:$version" | Set-Content "k8s\backend-deployment.yaml"
+
+            # استبدال التاج داخل frontend YAML
+            (Get-Content "k8s\frontend-deployment.yaml") -replace "firas124/todo-app-frontend:.*", "firas124/todo-app-frontend:$version" | Set-Content "k8s\frontend-deployment.yaml"
+
+            # إعداد Git
+            git config --global user.email "pipeline@yourdomain.com"
+            git config --global user.name "Azure DevOps Pipeline"
+
+            git remote set-url origin https://$(GITHUB_TOKEN)@github.com/FirasZouaoui/todo-app.git
+
+            git add k8s
+            git commit -m "ci: update image tags to $version"
+            git push origin HEAD:main
+          displayName: "Update YAMLs and Push to GitHub"
