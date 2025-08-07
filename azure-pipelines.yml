@@ -1,5 +1,11 @@
 trigger:
-- main
+  batch: true
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - k8s/*
 
 variables:
 - group: todo-app-env
@@ -138,21 +144,21 @@ stages:
       steps:
         - powershell: |
             $version = "v$(Build.BuildId)"
-            Write-Host "📝 Updating YAMLs to tag $version"
+            Write-Host " Updating YAMLs to tag $version"
 
-            # استبدال التاج داخل backend YAML
             (Get-Content "k8s\backend-deployment.yaml") -replace "firas124/todo-app-backend:.*", "firas124/todo-app-backend:$version" | Set-Content "k8s\backend-deployment.yaml"
-
-            # استبدال التاج داخل frontend YAML
             (Get-Content "k8s\frontend-deployment.yaml") -replace "firas124/todo-app-frontend:.*", "firas124/todo-app-frontend:$version" | Set-Content "k8s\frontend-deployment.yaml"
 
-            # إعداد Git
             git config --global user.email "pipeline@yourdomain.com"
             git config --global user.name "Azure DevOps Pipeline"
 
             git remote set-url origin https://$(GITHUB_TOKEN)@github.com/FirasZouaoui/todo-app.git
 
             git add k8s
-            git commit -m "ci: update image tags to $version"
-            git push origin HEAD:main
+            if (git diff --cached --quiet) {
+              Write-Host "No changes in YAML files. Skipping commit."
+            } else {
+              git commit -m "ci: update image tags to $version"
+              git push origin HEAD:main
+            }
           displayName: "Update YAMLs and Push to GitHub"
